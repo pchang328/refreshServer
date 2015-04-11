@@ -57,101 +57,41 @@ app.post('/db/:id', function (request, response) {
   var tablename = "status";
   var phonenumber = request.params.id;
   var contacts = request.body.contacts;
+  var status = request.body.status;
   var contactString = ""
   for (i = 0; i < contacts.length - 1; i++)
     contactString += contacts[i] + " ,"
   if (contacts.length > 0) contactString += contacts[contacts.length-1]
 
+  var update = "update status set contacts =  '{" + contactString + "}', online =  " + status + " where phonenumber = '" + phonenumber + "';";
   var online = 0;
   var insert = "insert into status (phonenumber, contacts, online ) ";
   insert += "select '" + phonenumber + "' , '{" + contactString + "}' , " + online + " "
   insert += "where not exists (select 1 from status where phonenumber = '" + phonenumber + "');"
 
+  console.log(update)
   console.log(insert)
   var success = true; 
-  pg.connect(connectionString, function(err, client, done) 
-  {
-    client.query(insert, function(err, result) 
-    {
-      done();
-      if (err) {
-        console.log(err); response.send("database error: "+err)
-        success = false;
-      }
-    });
-  });
-  if (success)
-  {
-    console.log("query was a success")
-    response.status(200).end();
-  }
-  else 
-    {
-      console.log("query was a failure")
-      response.status(500).end();
-    }
-})
-
-//Updating the status of person with phone number id
-//curl -X PUT -H "Content-Type: application/json" --data @statusUpdateTesting.json http://localhost:5000/db/status/phonenumber
-app.put('/db/status/:id', function (request, response) 
-{
-  var tablename = "status";
-  var status = request.body.status;
-  console.log(status)
-  var phone = request.params.id;
-  var update = "update status set online =  " + status + " where phonenumber = '" + phone + "';";
-
-  //console.log(update)
-  var success = true; 
-  pg.connect(connectionString, function(err, client, done) 
-  {
-    client.query(update, function(err, result)
-    {
+  pg.connect(connectionString, function(err, client, done) {
+    client.query(update, function(err, result) {
+          done();
+          if (err) {
+            console.log(err); response.send("Error: "+err)
+            success = false;
+          }
+        });
+    client.query( insert, function(err, result) {
       done();
       if (err) {
         console.log(err); response.send("Error: "+err)
         success = false;
-      }
+        }
+      });
     });
-  });
-  if (success)
-    response.status(200).end();
-  else response.status(500).end();
-})
-
-//Update the contact list - bruteforce method (uploads the entire contact list again -
-//hence deals with both the deletion and addition of contact, pushes responsiblity to client)
-app.put('/db/contacts/:id', function (request, response) 
-{
-  var tablename = "status";
-  var contacts = request.body.contacts;
-  var phone = request.params.id;
-  var contactString = ""
-  //console.log(contacts);
-  for (i = 0; i < contacts.length - 1; i++)
-    contactString += contacts[i] + " ,"
-  if (contacts.length > 0) contactString += contacts[contacts.length-1]
-
-  var update = "update status set contacts =  '{" + contactString + "}' where phonenumber = '" + phone + "';";
-
-  console.log(update)
-  var success = true; 
-  pg.connect(connectionString, function(err, client, done) 
-  {
-    client.query(update, function(err, result)
-    {
-      done();
-      if (err) {
-        console.log(err); response.send("Error: "+err)
-        success = false;
-      }
-    });
-  });
-  if (success)
-    response.status(200).end();
-  else response.status(500).end();
-})
+      if (success)
+        response.status(200).end();
+      else response.status(500).end();
+  })
 
 //Delete user from database with phone number id
 app.delete('/db/:id', function (request, response) 
