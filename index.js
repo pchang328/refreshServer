@@ -52,22 +52,22 @@ app.get('/db/:idOther/:idYou', function (request, response) {
 });
 
 //Sending a new contact to the database
-//curl -H "Content-Type: application/json" --data @postTesting.json http://localhost:5000/db
+//curl -X POST -H "Content-Type: application/json" --data @postTesting.json http://localhost:5000/db/phonenumberOfUser
 app.post('/db/:id', function (request, response) {
   var tablename = "status";
   var phonenumber = request.params.id;
   var contacts = request.body.contacts;
   var contactString = ""
-  //console.log(contacts);
   for (i = 0; i < contacts.length - 1; i++)
     contactString += contacts[i] + " ,"
   if (contacts.length > 0) contactString += contacts[contacts.length-1]
-  //console.log(phonenumber);
 
-  //TODO: Avoid making duplicates
   var online = 0;
-  var insert = "insert into status values ('" + phonenumber + "' , '{" + contactString + "}' , " + online + ");";
-  //console.log(insert)
+  var insert = "insert into status (phonenumber, contacts, online ) ";
+  insert += "select '" + phonenumber + "' , '{" + contactString + "}' , " + online + " "
+  insert += "where not exists (select 1 from status where phonenumber = '" + phonenumber + "');"
+
+  console.log(insert)
   var success = true; 
   pg.connect(connectionString, function(err, client, done) 
   {
@@ -75,7 +75,6 @@ app.post('/db/:id', function (request, response) {
     {
       done();
       if (err) {
-        console.log("yoooo what the fuck is this error")
         console.log(err); response.send("database error: "+err)
         success = false;
       }
@@ -94,7 +93,7 @@ app.post('/db/:id', function (request, response) {
 })
 
 //Updating the status of person with phone number id
-//curl -X PUT -H "Content-Type: application/json" --data @statusUpdateTesting.json http://localhost:5000/db/status/9172178454
+//curl -X PUT -H "Content-Type: application/json" --data @statusUpdateTesting.json http://localhost:5000/db/status/phonenumber
 app.put('/db/status/:id', function (request, response) 
 {
   var tablename = "status";
@@ -102,6 +101,7 @@ app.put('/db/status/:id', function (request, response)
   console.log(status)
   var phone = request.params.id;
   var update = "update status set online =  " + status + " where phonenumber = '" + phone + "';";
+
   //console.log(update)
   var success = true; 
   pg.connect(connectionString, function(err, client, done) 
@@ -134,6 +134,7 @@ app.put('/db/contacts/:id', function (request, response)
   if (contacts.length > 0) contactString += contacts[contacts.length-1]
 
   var update = "update status set contacts =  '{" + contactString + "}' where phonenumber = '" + phone + "';";
+
   console.log(update)
   var success = true; 
   pg.connect(connectionString, function(err, client, done) 
